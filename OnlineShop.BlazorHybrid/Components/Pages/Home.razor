@@ -1,0 +1,29 @@
+﻿@page "/"
+@using Syncfusion.Blazor.Buttons
+@inject NavigationManager NavigationManager
+<div class="text-center">
+    <h1>Online Shop</h1>
+
+    Welcome to your new app.
+    <br />
+    <br />
+
+    <div class="form-group">
+        <SfButton class="btn btn-primary" @onclick=NavigateToLoginPage>Login</SfButton>        
+    </div>
+    <div class="form-group">
+        <br />
+        <SfButton class="btn btn-secondary" @onclick=NavigateToRegisterPage>Register</SfButton>
+    </div>
+</div>
+
+@code {
+    private void NavigateToLoginPage()
+    {
+        NavigationManager.NavigateTo("/login");
+    }
+    private void NavigateToRegisterPage()
+    {
+        NavigationManager.NavigateTo("/register");
+    }
+}

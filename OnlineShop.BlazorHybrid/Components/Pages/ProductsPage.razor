@@ -1,0 +1,91 @@
+﻿@page "/products"
+@inject NavigationManager NavigationManager
+@inject HttpClient HttpClient
+@using OnlineShop.API.Shared.ViewModels
+@using OnlineShop.BlazorHybrid.Models
+@using Syncfusion.Blazor.Grids
+
+<div class="row">
+    <div class="align-content-end">
+        <a @onclick=NavigateBack>Logout</a>
+    </div>
+</div>
+<br />
+
+<div class="container">
+
+    <div class="row">
+        <div>
+            <h2>search</h2>
+            <input type="text" @bind-value=priceFrom id="text" placeholder="Price from"/>
+            <span> - </span>
+            <input type="text" @bind-value=priceTo id="priceTo" placeholder="Price to" />
+            <button class="btn btn-primary" @onclick="SearchProducts">Click to search</button>
+        </div>
+        <div class="main" row-cols-md-10>
+        <SfGrid DataSource="@Products" AllowPaging=true AllowSorting="true" AllowFiltering="true">
+            <GridPageSettings PageSize="5"></GridPageSettings>
+            <header>
+                <h3 class="fw-bold">Products</h3>
+            </header>
+            <GridColumns>
+                <GridColumn Field=@nameof(ProductModel.Id) HeaderText="Product ID" Width="100"></GridColumn>
+                <GridColumn Field=@nameof(ProductModel.ProductName) HeaderText="Product Name" Width="200"></GridColumn>
+                <GridColumn Field=@nameof(ProductModel.Description) HeaderText="Product Description"></GridColumn>
+                <GridColumn Field=@nameof(ProductModel.Price) HeaderText="Product Price" Width="120" 
+                            TextAlign="TextAlign.Right" Format="C2"></GridColumn>
+            </GridColumns>
+        </SfGrid>
+        </div>
+    </div>
+</div>
+@code {
+    public List<ProductModel> Products { get; set; }
+    public List<ProductModel> TempProducts { get; set; }
+    private string _baseUrl = ConstantHelper.BaseApiUrl;
+    private string priceFrom;
+    private string priceTo;
+
+    protected async override void OnInitialized()
+    {
+        try
+        {
+            HttpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {ConstantHelper.Token}");
+            Products = await HttpClient.GetFromJsonAsync<List<ProductModel>>(_baseUrl + "Products");
+            TempProducts = Products;
+            this.StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private void NavigateBack()
+    {
+        ConstantHelper.Token= string.Empty;
+        NavigationManager.NavigateTo(NavigationManager.BaseUri.TrimEnd('/') + "/#");
+    }
+
+    private void SearchProducts()
+    {
+        try {
+            if (string.IsNullOrEmpty(priceFrom) && string.IsNullOrEmpty(priceTo))
+            {
+                Products = TempProducts;
+            }
+
+            decimal.TryParse(priceFrom, out decimal fromPrice);
+            decimal.TryParse(priceTo, out decimal toPrice);
+            if (toPrice == 0)
+            {
+                toPrice = decimal.MaxValue;
+            }
+            Products = TempProducts.Where(x => x.Price >= Convert.ToDecimal(fromPrice) && x.Price <= Convert.ToDecimal(toPrice)).ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+}

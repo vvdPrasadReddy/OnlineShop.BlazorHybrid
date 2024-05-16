@@ -1,0 +1,32 @@
+﻿@using OnlineShop.API.Shared.ViewModels
+@inject HttpClient HttpClient
+
+<div class="dialog-container">
+    <div class="dialog">
+        <div class="dialog-title">            
+            @ErrorModel.MessageTitle
+        </div>
+        <form class="dialog-body">
+            <div>
+                <label>@ErrorModel.Message</label>                
+            </div>
+        </form>
+
+        <div class="dialog-buttons">
+            <div class="col-md-4"/>            
+            <div class="col-md-4"/>
+            <div class="col-md-4 align-content-md-center">
+                <button class="btn btn-success ml-auto" @onclick="OnConfirm">Ok</button>
+                <button class="btn btn-secondary ml-auto" @onclick="OnCancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    [Parameter] public ErrorModel ErrorModel { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public EventCallback OnConfirm { get; set; }
+
+}

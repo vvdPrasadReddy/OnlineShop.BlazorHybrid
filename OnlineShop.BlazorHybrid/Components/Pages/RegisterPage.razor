@@ -1,0 +1,167 @@
+﻿@page "/register"
+@using Microsoft.Extensions.Configuration
+@using Newtonsoft.Json
+@using OnlineShop.BlazorHybrid.Components.Shared
+@using OnlineShop.API.Shared.ViewModels
+@using OnlineShop.BlazorHybrid.Models
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Buttons
+@using System.Text
+@inject NavigationManager NavigationManager
+@inject HttpClient HttpClient
+@inject IConfiguration Configuration
+
+<a @onclick=NavigateBack>Back</a>
+<br/>
+
+
+<div>
+    <EditForm Model="registerViewModel" OnValidSubmit="RegisterCommand">
+        <DataAnnotationsValidator />
+        <div class="mt-2 form-control">
+            <label for="Email">Email</label>
+            <input type="text" @bind-value="registerViewModel.Email" class="form-control" id="Email" placeholder="Enter Email">
+            <ValidationMessage For="@(() => registerViewModel.Email)" />
+        </div>
+        <div class="mt-2 form-control">
+            <label for="password">Password</label>
+            <input type="password" @bind-value="registerViewModel.Password" class="form-control" id="password" placeholder="Password">
+            <ValidationMessage For="@(() => registerViewModel.Password)" />
+        </div>
+        
+        <div class="mt-2 form-control">
+            <label for="contries">Country</label>
+            <select @onchange="OnCountryDropdownChange" class="form-control">
+                <option value="">Select your country</option>
+                @foreach (var item in countries)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                })
+            </select>
+            <ValidationMessage For="@(() => registerViewModel.CountryId)" />
+        </div>
+        <div class="mt-2 form-control">
+            <label for="states">States</label>
+            <select @onchange="OnStateDropdownChange" class="form-control">
+                <option value="">Select your state</option>
+                @foreach (var item in states)
+                {
+                    <option value="@item.Id">@item.StateName</option>
+                })
+            </select>
+            <ValidationMessage For="@(() => registerViewModel.StateId)" />
+        </div>
+        <div class="text-center mt-2 text-center">
+            <button type="submit" class="btn btn-primary">
+                <span class="@_spinnerClass" role="status" aria-hidden="true"></span>
+                Register
+            </button>
+        </div>
+    </EditForm>    
+    @if (displayDialog)
+    {
+        <CommonDialog ErrorModel=errorModel OnConfirm=OkButtonClicked></CommonDialog>
+    }
+</div>
+
+
+@code {
+    private string selectedCountry;
+    private string selectedState;
+    private string _spinnerClass = "";
+    private bool displayDialog = false;
+    private bool registrationFailed = false;
+    private ErrorModel errorModel = new ErrorModel();
+    private UserDetails registerViewModel = new UserDetails();
+
+    private List<State> states = new List<State>();
+    private List<Country> countries = new List<Country>();
+    private string _baseUrl = ConstantHelper.BaseApiUrl;
+
+    private async void OnCountryDropdownChange(ChangeEventArgs e)
+    {
+        selectedCountry= e.Value.ToString();
+        states = new List<State>();
+        if (int.TryParse(selectedCountry, out int countryId))
+        {
+            registerViewModel.CountryId = countryId;
+            states = await HttpClient.GetFromJsonAsync<List<State>>($"{_baseUrl}User/states?countryId={countryId}");
+            this.StateHasChanged();
+        }
+    }
+
+    private void OnStateDropdownChange(ChangeEventArgs e)
+    {
+        selectedState= e.Value.ToString();        
+        if (int.TryParse(selectedState, out int stateId))
+        {
+            registerViewModel.StateId = stateId;
+        }
+    }
+
+    private void NavigateBack()
+    {
+        NavigationManager.NavigateTo(NavigationManager.BaseUri.TrimEnd('/') + "/#");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {        
+        try
+        {
+            countries = await HttpClient.GetFromJsonAsync<List<Country>>(_baseUrl + "User/countries");
+            this.StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private async void RegisterCommand()
+    {
+        _spinnerClass = "spinner-border spinner-border-sm";
+
+        this.StateHasChanged();
+
+        if(string.IsNullOrWhiteSpace(registerViewModel.Email) || string.IsNullOrWhiteSpace(registerViewModel.Password) || !registerViewModel.CountryId.HasValue || !registerViewModel.StateId.HasValue)
+        {
+            _spinnerClass = "";
+            return;
+        }
+
+        string jsonData = JsonConvert.SerializeObject(registerViewModel);
+        var data = new StringContent(jsonData, Encoding.UTF8, "application/json");
+        var response = await HttpClient.PostAsync(_baseUrl + "User/Register", data);
+
+        if (response.IsSuccessStatusCode)
+        {
+            //NavigationManager.NavigateTo("/products");
+            errorModel.MessageTitle = "Registration Success";
+            errorModel.Message = "Please login now";
+            displayDialog = true;
+            registrationFailed = false;
+            this.StateHasChanged();            
+        }
+        else
+        {
+            errorModel.MessageTitle = "Registration Failed";
+            errorModel.Message = "E-Mail id already exists";
+            displayDialog = true;
+            registrationFailed = true;
+            this.StateHasChanged();
+        }
+        _spinnerClass = "";
+    }
+
+    private void OkButtonClicked()
+    {
+        displayDialog = false;
+        if (!registrationFailed)
+        {
+            NavigationManager.NavigateTo("/login");
+        }
+        this.StateHasChanged();
+    }
+}
+
